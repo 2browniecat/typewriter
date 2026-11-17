@@ -1,0 +1,103 @@
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style>
+    body { background-color: #f1eee9; }
+    @media print { @page { size: A5; margin: 1.5cm; background-color: #f1eee9; } }
+  </style>
+</head>
+
+<body>
+  <div class="w-[118mm] max-w-full print:w-full h-8/10 m-auto pb-[1.5cm] print:pb-0 flex flex-col justify-end print:h-auto print:block">
+    <div id="lines" class="whitespace-pre-wrap break-words text-justify"></div>
+    <div id="input" class="print:hidden min-h-6 whitespace-pre-wrap break-words"></div>
+  </div>
+
+  <script>
+    const TITLE_CLASSES = ['text-center', 'font-bold'];
+
+    const state = {
+      lines: [],      
+      draft: '',      
+      titling: false, 
+    };
+
+    const ui = {
+      lines: document.getElementById('lines'),
+      input: document.getElementById('input'),
+    };
+
+    // ---------- Renderização ----------
+    function createLine({ text, title }) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      if (title) div.classList.add(...TITLE_CLASSES);
+      return div;
+    }
+
+    function render() {
+      ui.lines.replaceChildren(...state.lines.map(createLine));
+
+      ui.input.textContent = state.draft + '_';
+      TITLE_CLASSES.forEach((c) => ui.input.classList.toggle(c, state.titling));
+
+      const firstTitle = state.lines.find((line) => line.title);
+      document.title = firstTitle?.text.trim() || 'documento';
+    }
+
+    // ---------- Comandos (digite e pressione Enter) ----------
+    const commands = {
+      '/tl': () => {
+        state.titling = true;
+      },
+      '/pr': () => {
+        render();
+        window.print();
+      },
+      '/cl': () => {
+        state.lines = [];
+        state.titling = false;
+      },
+    };
+
+    // ---------- Ações de teclado ----------
+    function deleteChar() {
+      if (state.draft) {
+        state.draft = state.draft.slice(0, -1);
+      } else if (state.lines.length) {
+        const { text, title } = state.lines.pop();
+        state.draft = text;
+        state.titling = title;
+      }
+    }
+
+    function submit() {
+      const text = state.draft;
+      state.draft = '';
+
+      const runCommand = commands[text];
+      if (runCommand) return runCommand();
+
+      state.lines.push({ text: text || ' ', title: state.titling });
+      state.titling = false;
+    }
+
+    function type(char) {
+      state.draft += char;
+    }
+
+    // ---------- Entrada ----------
+    document.addEventListener('keydown', ({ key }) => {
+      if (key === 'Backspace') deleteChar();
+      else if (key === 'Enter') submit();
+      else if (key.length === 1) type(key);
+
+      render();
+    });
+
+    render();
+  </script>
+</body>
+</html>
